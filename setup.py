@@ -1,5 +1,6 @@
-import os
 import io
+import os
+
 from setuptools import setup
 
 dir = os.path.dirname(__file__)
@@ -9,9 +10,10 @@ with io.open(os.path.join(dir, 'README.md'), encoding='utf-8') as f:
 
 setup(
     name='pytrends',
-    version='4.3.0',
+    version='4.7.2',
     description='Pseudo API for Google Trends',
     long_description=long_description,
+    long_description_content_type='text/markdown',
     url='https://github.com/dreyco676/pytrends',
     author=['John Hogue', 'Burton DeWilde'],
     author_email='dreyco676@gmail.com',
@@ -24,9 +26,10 @@ setup(
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
         'License :: OSI Approved :: MIT License'
-        ],
-    install_requires=["requests", "pandas", 'lxml'],
+    ],
+    install_requires=['requests', 'pandas>=0.25', 'lxml'],
     keywords='google trends api search',
     packages=['pytrends'],
 )

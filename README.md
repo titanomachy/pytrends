@@ -6,6 +6,8 @@ Unofficial API for Google Trends
 
 Allows simple interface for automating downloading of reports from Google Trends. Main feature is to allow the script to login to Google on your behalf to enable a higher rate limit. Only good until Google changes their backend again :-P. When that happens feel free to contribute!
 
+**Looking for maintainers!**
+
 
 ## Table of contens
 
@@ -18,6 +20,7 @@ Allows simple interface for automating downloading of reports from Google Trends
   * [Common API parameters](#common-api-parameters)
 
     * [Interest Over Time](#interest-over-time)
+    * [Historical Hourly Interest](#historical-hourly-interest)
     * [Interest by Region](#interest-by-region)
     * [Related Topics](#related-topics)
     * [Related Queries](#related-queries)
@@ -48,6 +51,34 @@ Allows simple interface for automating downloading of reports from Google Trends
 
     pytrends = TrendReq(hl='en-US', tz=360)
 
+or if you want to use proxies as you are blocked due to Google rate limit:
+
+
+    from pytrends.request import TrendReq
+
+    pytrends = TrendReq(hl='en-US', tz=360, timeout=(10,25), proxies=['https://34.203.233.13:80',], retries=2, backoff_factor=0.1)
+
+* `timeout(connect, read)`
+
+  - Timezone Offset
+  - For example US CST is ```'360'```
+
+* `proxies`
+
+  - https proxies Google passed ONLY
+  - list ```['https://34.203.233.13:80','https://35.201.123.31:880', ..., ...]```
+  
+* `retries`
+
+  - number of retries total/connect/read all represented by one scalar
+
+* `backoff_factor`
+
+  - A backoff factor to apply between attempts after the second try (most errors are resolved immediately by a second try without a delay). urllib3 will sleep for: ```{backoff factor} * (2 ^ ({number of total retries} - 1))``` seconds. If the backoff_factor is 0.1, then sleep() will sleep for [0.0s, 0.2s, 0.4s, …] between retries. It will never be longer than Retry.BACKOFF_MAX. By default, backoff is disabled (set to 0).
+
+Note: the parameter `hl` specifies host language for accessing Google Trends. 
+Note: only https proxies will work, and you need to add the port number after the proxy ip address
+
 ### Build Payload
     kw_list = ["Blockchain"]
     pytrends.build_payload(kw_list, cat=0, timeframe='today 5-y', geo='', gprop='')
@@ -67,6 +98,8 @@ Parameters
 The following API methods are available:
 
 * [Interest Over Time](#interest-over-time): returns historical, indexed data for when the keyword was searched most as shown on Google Trends' Interest Over Time section.
+
+* [Historical Hourly Interest](#historical-hourly-interest): returns historical, indexed, hourly data for when the keyword was searched most as shown on Google Trends' Interest Over Time section. It sends multiple requests to Google, each retrieving one week of hourly data. It seems like this would be the only way to get historical, hourly data. 
 
 * [Interest by Region](#interest-by-region): returns data for where the keyword is most searched as shown on Google Trends' Interest by Region section.
 
@@ -90,7 +123,7 @@ Many API methods use the following:
 
   - keywords to get data for
   - Example ```['Pizza']```
-  - Up to five terms in a list: ```['Pizza, Italian, Spaghetti, Breadsticks, Sausage']```
+  - Up to five terms in a list: ```['Pizza', 'Italian', 'Spaghetti', 'Breadsticks', 'Sausage']```
 
     * Advanced Keywords
 
@@ -120,8 +153,9 @@ Many API methods use the following:
 
 * `tz`
 
-  - Timezone Offset
-  - For example US CST is ```'360'```
+  - Timezone Offset (in minutes)
+  - For more information of Timezone Offset, [view this wiki page containing about UCT offset](https://en.wikipedia.org/wiki/UTC_offset)
+  - For example US CST is ```'360'``` 
 
 * `timeframe`
 
@@ -165,9 +199,33 @@ Returns pandas.Dataframe
 
 <sub><sup>[back to top](#interest_over_time)</sub></sup>
 
+
+### Historical Hourly Interest
+
+    pytrends.get_historical_interest(kw_list, year_start=2018, month_start=1, day_start=1, hour_start=0, year_end=2018, month_end=2, day_end=1, hour_end=0, cat=0, geo='', gprop='', sleep=0)
+    
+Parameters 
+
+* `kw_list`
+
+  - *Required*
+  - list of keywords that you would like the historical data
+
+* `year_start, month_start, day_start, hour_start, year_end, month_end, day_end, hour_end`
+
+  - the time period for which you would like the historical data
+  
+* `sleep`
+
+  - If you are rate-limited by Google, you should set this parameter to something (i.e. 60) to space off each API call. 
+  
+Returns pandas.Dataframe
+
+<sub><sup>[back to top](#historical-hourly-interest)</sub></sup>
+
 ### Interest by Region
 
-    pytrends.interest_by_region(resolution='COUNTRY')
+    pytrends.interest_by_region(resolution='COUNTRY', inc_low_vol=True, inc_geo_code=False)
 
 Parameters
 
@@ -175,6 +233,16 @@ Parameters
 
   - 'CITY' returns city level data
   - 'COUNTRY' returns country level data
+  - 'DMA'  returns Metro level data
+  - 'REGION'  returns Region level data
+
+* `inc_low_vol`
+
+  - True/False (includes google trends data for low volume countries/regions as well)
+
+* `inc_geo_code`
+  
+  - True/False (includes ISO codes of countries along with the names in the data)
 
 Returns pandas.DataFrame
 
@@ -198,30 +266,24 @@ Returns dictionary of pandas.DataFrames
 
 ### Trending Searches
 
-	pytrends.trending_searches(pn='p1') # in English
-	pytrends.trending_searches(pn='p4') # in Japanese
+	pytrends.trending_searches(pn='united_states') # trending searches in real time for United States
+	pytrends.trending_searches(pn='japan') # Japan
+
 Returns pandas.DataFrame
 
 <sub><sup>[back to top](#trending_searches)</sub></sup>
 
 ### Top Charts
 
-    pytrends.topcharts(date, cid, geo='US', cat='')
+    pytrends.top_charts(date, hl='en-US', tz=300, geo='GLOBAL')
 
 Parameters
 
 * `date`
 
   - *Required*
-  - YYYYMM integer or string value
-  - Example `'201611'` for November 2016 Top Chart data
-
-* `cid`
-
-  - *Required*
-  - Topic to get data for
-  - Only able to choose from those listed on https://www.google.com/trends/topcharts
-  - Example the chart 'Baseketball players `cid` is `'basketball_players'`
+  - YYYY or YYYYMM integer
+  - Example `201611` for November 2016 Top Chart data
 
 Returns pandas.DataFrame
 
@@ -242,12 +304,22 @@ Returns dictionary
 
 <sub><sup>[back to top](#suggestions)</sub></sup>
 
+### Categories
+
+    pytrends.categories()
+
+Returns dictionary
+
+<sub><sup>[back to top](#suggestions)</sub></sup>
+
 # Caveats
 
 * This is not an official or supported API
 * Google may change aggregation level for items with very large or very small search volume
 * Google will send you an email saying that you had a new login after running this.
-* Rate Limit is not publicly known, let me know if you have a consistent estimate.
+* Rate Limit is not publicly known, let me know if you have a consistent estimate
+  * One user reports that 1,400 sequential requests of a 4 hours timeframe got them to the limit. (Replicated on 2 networks)
+  * It has been tested, and 60 seconds of sleep between requests (successful or not) is the correct amount once you reach the limit.
 * For certain configurations the dependency lib certifi requires the environment variable REQUESTS_CA_BUNDLE to be explicitly set and exported. This variable must contain the path where the ca-certificates are saved or a SSLError: [SSL: CERTIFICATE_VERIFY_FAILED] error is given at runtime. 
 
 # Credits
